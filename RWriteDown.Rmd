@@ -1,0 +1,93 @@
+---
+title: "PML - Coursera"
+output: html_document
+date: "2022-09-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+Prediction Assignment Writeup
+
+Overview
+This is the assignment for the Coursera Course: Practical Machine Learning from John Hopkins University. Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
+
+Data Source
+The training data for this project are available here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+Preparation
+
+Loading of Data and Libraries
+
+```
+library(lattice)
+library(ggplot2)
+library(caret)
+library(kernlab)
+library(rattle)
+library(corrplot)
+set.seed(1234)
+
+testdata <- read.csv("~/ML - Coursera/pml-testing.csv")
+traindata <- read.csv("~/ML - Coursera/pml-training.csv")
+
+```
+
+Data Cleaning
+The first step will be to remove unnecessary columns and data or features that should not affect the prediction results. “NA” data and the first 7 columns of the csv files(which consist of names index etc) and also data with near zero variance will be removed.
+
+```
+traindata <- traindata[,colMeans(is.na(traindata)) < 0.9]
+traindata <- traindata[,-c(1:7)]
+traindata <- traindata[,-nearZeroVar(traindata)]
+```
+
+Splitting of Data into training and validation
+```
+inTrain <- createDataPartition(y=traindata$classe, p=0.7, list=F)
+training <- traindata[inTrain,]
+validation <- traindata[-inTrain,]
+```
+
+Model Testing
+I will be testing on a few model to see which will yield the best results. Namely, they will be Decision Trees, Random Forest and SVM.
+
+Decision Trees
+```
+dtree_mod <- train(classe~., data=training, method="rpart", tuneLength = 5)
+dtree_predict <- predict(dtree_mod, validation)
+confusionMatrix(dtree_predict, factor(validation$classe))
+```
+
+Random Forest
+```
+rf_mod <- train(classe~., data=training, method="rf", tunelength=5)
+rf_predict <- predict(rf_mod, validation)
+confusionMatrix(rf_predict, factor(validation$classe))
+```
+
+SVM
+```
+svm_mod <- train(classe~., data=training, method="svmLinear", tunelength=3)
+svm_predict <- predict(svm_mod, validation)
+confusionMatrix(svm_predict, factor(validation$classe))
+```
+
+Results Comparison 
+Model			        Accuracy	    OOS Error
+Decision Trees		0.5392        0.4608
+Random Forest	    0.9947        0.0053
+SVM			          0.782        	0.218
+
+Prediction on Test Data
+```
+Testdata_predict <- predict(rf_mod, testdata)
+print(Testdata_predict)
+
+```
+
+
